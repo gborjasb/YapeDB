@@ -20,8 +20,8 @@ DB_CONFIG = {
     "host": "localhost",
     "database": "yape_database",
     "port": 5434,
-    "user": "your_user",
-    "password": "your_password"
+    "user": "gmborjasb",
+    "password": "MomoYMoka"
 }
 
 NUM_ACTORES = 1_000_000
@@ -43,7 +43,7 @@ np.random.seed(42)
 def conectar():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
-    cur.execute("SET search_path TO yape_1_000;")
+    cur.execute("SET search_path TO yape_1_000_000;")
     cur.execute("SET synchronous_commit TO OFF;")
     cur.execute("SET work_mem = '256MB';")
     conn.commit()
@@ -109,10 +109,16 @@ if personas_data:
     conn.commit()
 
 print("▶ Empresas...")
+
+used_ruc = set()
 empresas_data = []
 
 for aid in tqdm(company_ids, desc="Empresas", ncols=70):
-    ruc = str(random.randint(10000000000, 19999999999))
+    while True:
+        ruc = str(random.randint(10000000000, 19999999999))
+        if ruc not in used_ruc:
+            used_ruc.add(ruc)
+            break
     empresas_data.append((aid, ruc, f"Empresa {aid} SAC", "Retail", f"Comercio {aid}"))
 
     if len(empresas_data) >= BATCH_SIZE:
@@ -123,6 +129,7 @@ for aid in tqdm(company_ids, desc="Empresas", ncols=70):
 if empresas_data:
     execute_values(cur, "INSERT INTO empresa (id_actor, ruc, razon_social, rubro_comercial, nombre_comercial) VALUES %s", empresas_data, page_size=1000)
     conn.commit()
+
 
 num_small = int(NUM_EMPRESAS * 0.33)
 num_ae = int(NUM_EMPRESAS * 0.33)
@@ -396,7 +403,6 @@ conn.commit()
 cerrar(conn, cur)
 print(f"  ✔ Parte 4: {time.time() - inicio:.1f}s ({total_p2p_final:,} transacciones)")
 
-# ...código anterior...
 
 # ============================================================
 # PARTE 5 – NOTIFICACIONES
@@ -413,7 +419,7 @@ cur.execute("""
     JOIN operacion_yape oy ON ty.id_transaccion = oy.id_transaccion
     WHERE ty.estado = 'Exitosa'
     AND RANDOM() < 0.3
-    LIMIT 10000;
+    LIMIT 1000000;
 """)
 
 transacciones = cur.fetchall()
